@@ -1,0 +1,29 @@
+name: Validate manifests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  kubeconform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate Kubernetes manifests
+        # -ignore-missing-schemas skips manifests/kustomization.yaml, which is a
+        # Kustomize config rather than a plain Kubernetes resource and has no schema.
+        run: kubeconform -summary -strict -ignore-missing-schemas -kubernetes-version 1.30.0 manifests/*.yaml
+
+      - name: Dry-run build with kustomize
+        run: kubectl kustomize manifests/ > /dev/null
